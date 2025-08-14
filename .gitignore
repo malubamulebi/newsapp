@@ -1,0 +1,22 @@
+# Composer
+/vendor/
+
+# Environment / secrets
+.env
+
+# Cache & logs
+/writable/*
+!/writable/index.html
+
+# IDE/OS
+/.vscode/
+/.idea/
+.DS_Store
+Thumbs.db
+
+# Node (if you add npm later)
+/node_modules/
+
+# User uploads (keep folder, ignore files)
+public/uploads/*
+!public/uploads/.gitkeep
