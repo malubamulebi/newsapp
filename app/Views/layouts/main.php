@@ -33,7 +33,7 @@
             <a class="btn btn-sm btn-outline-danger ms-2" href="<?= site_url('logout') ?>">Logout</a>
             </li>
         <?php else: ?>
-            <li class="nav-item"><a class="nav-link" href="<?= site_url('login') ?>">Admin</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= site_url('login') ?>">Dashboard</a></li>
         <?php endif; ?>
 
         <li class="nav-item"><a class="nav-link" href="<?= site_url('login') ?>">Admin</a></li>
@@ -46,9 +46,31 @@
   </div>
 </nav>
 
+</nav>
+
+<!-- Flash messages -->
+<div class="container mt-3">
+  <?php if (session()->has('success')): ?>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <?= session('success') ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+  <?php endif; ?>
+
+  <?php if (session()->has('error')): ?>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <?= session('error') ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+  <?php endif; ?>
+</div>
+
 <?= $this->renderSection('content') ?>
 
 <footer class="text-center py-4 text-muted small">
+
+
+
   © <?= date('Y') ?> NewsApp
 </footer>
 

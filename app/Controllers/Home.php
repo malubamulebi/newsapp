@@ -7,9 +7,11 @@ class Home extends BaseController
 {
     public function index(): string
     {
-        $posts = (new PostsModel())->where('deleted_at', null)
-          ->orderBy('updated_at DESC, created_at DESC')
-          ->findAll(6);
+        $posts = (new PostsModel())
+            ->where('deleted_at', null)      // exclude archived (soft-deleted)
+            ->where('status', 'active')      // ONLY active posts
+            ->orderBy('updated_at DESC, created_at DESC')
+            ->findAll(6); 
         return view('news/home', [
             'title'     => 'News',
             'posts'     => $posts,

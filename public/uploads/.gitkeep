@@ -1,0 +1,4 @@
+echo "" > uploads/.gitkeep
+git add uploads/.gitkeep
+git commit -m "Add uploads folder placeholder"
+git push

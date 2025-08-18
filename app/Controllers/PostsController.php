@@ -50,6 +50,10 @@ class PostsController extends BaseController
     public function new()
     {
         //
+            return view('admin/add_post', [
+            'title'     => 'Create Post',
+            'bodyClass' => 'site-bg'
+        ]);
     }
 
     /**
@@ -57,43 +61,51 @@ class PostsController extends BaseController
      *
      * @return ResponseInterface
      */
-    public function create()
-    {
-        $file = $this->request->getFile('picture');
-        $picturePath = null;
+        public function create()
+        {
+            $postModel = new \App\Models\PostsModel();
 
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $newName = $file->getRandomName();
-            $file->move(FCPATH . 'uploads', $newName);
-            $picturePath = 'uploads/' . $newName; // relative path
-        }
-
-        $newPost = new PostsModel();
-        $newPostData = [
-            'header'=> $this->request->getPost('header'), 
-            'body'=> $this->request->getPost('body'), 
-            'picture'=> $this->request->getPost('picture')
-        ];
-        $newPost -> insert($newPostData);
-        return "Post created sucessfully!";
-        //
-        // Enforce max 6 active posts on the homepage (auto-archive oldest)
-        $MAX = 6;
-        $active = (new \App\Models\PostsModel())
-            ->where('deleted_at', null)
-            ->orderBy('updated_at DESC, created_at DESC')
-            ->findAll();
-
-        if (count($active) > $MAX) {
-            // find anything beyond the top $MAX and archive them
-            $toArchive = array_slice($active, $MAX);
-            $pm = new \App\Models\PostsModel();
-            foreach ($toArchive as $row) {
-                $pm->delete($row['postId']); // soft delete
+            // handle file
+            $file = $this->request->getFile('picture');
+            $filename = null;
+            if ($file && $file->isValid() && !$file->hasMoved()) {
+                $filename = $file->getRandomName();
+                $file->move(FCPATH . 'uploads', $filename); // public/uploads
             }
+
+            $data = [
+                'header'   => $this->request->getPost('header'),
+                'body'     => $this->request->getPost('body'),
+                'picture'  => $filename,                             // null if none
+                'status'   => $this->request->getPost('status') ?? 'active',
+            ];
+
+            // basic required check (avoid "header cannot be null")
+            if (empty($data['header']) || empty($data['body'])) {
+                return redirect()->back()->with('error', 'Headline and Body are required');
+            }
+
+            $postModel->insert($data);
+
+            // success
+            return redirect()->to(site_url('/'))->with('success', 'Post created!');
         }
 
-    }
+
+        public function view($id)
+        {
+            $postModel = new \App\Models\PostsModel();
+            $post = $postModel->find($id);
+
+            if (!$post) {
+                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Post not found");
+            }
+
+            return view('news/view', [
+                'title' => $post['header'],
+                'post' => $post
+            ]);
+        }
 
     /**
      * Return the editable properties of a resource object.
@@ -132,6 +144,7 @@ class PostsController extends BaseController
             'header' => $this->request->getPost('header'),
             'body'   => $this->request->getPost('body'),
             'picture'=> $this->request->getPost('picture'),
+            'status' => $this->request->getPost('status'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
 

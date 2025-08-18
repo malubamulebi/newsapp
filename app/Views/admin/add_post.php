@@ -10,11 +10,22 @@
         </div>
         <div class="card-body p-4 p-md-5">
         <form method="post" action="<?= site_url('create_post') ?>" enctype="multipart/form-data">
+
+        <div class="mb-3">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="active" selected>Active</option>
+            <option value="archived">Archived</option>
+          </select>
+          </div>
+          <!-- <div class="mb-3a"><label for="status" class="form-label">Title</label>
+          <textfield name -->
           <div class="mb-3">
-            <label class="form-label">Headline</label>
-            <input type="text" name="header" class="form-control form-control-lg" required>
+          <label for="header" class="form-label">Headline</label>
+          <input type="text" name="header" id="header" class="form-control" placeholder="Enter headline" required>
           </div>
 
+          </div>
           <div class="mb-3">
             <label class="form-label">Body</label>
             <textarea name="body" rows="6" class="form-control" required></textarea>
