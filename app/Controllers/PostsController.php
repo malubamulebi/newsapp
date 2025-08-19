@@ -137,61 +137,48 @@ class PostsController extends BaseController
     //     $newPost -> update($postID=null, $newPostData);
     //     return "Post Updated!";
     // }
-    public function update($id = null)
-    {
-        if ($id === null) {
-            return $this->response->setJSON(["error" => "No Post ID provided!"]);
-        }
-
-        $postModel = new PostsModel();
-        $existing  = $postModel->find($id);
-        if (!$existing) {
-            return $this->response->setJSON(["error" => "Post not found"]);
-        }
-
-        // Gather scalar fields
-        $isFeatured = $this->request->getPost('is_featured'); // checkbox "on"/"1" or null
-        $isFeatured = ($isFeatured === '1' || $isFeatured === 'on' || $isFeatured === 1) ? 1 : 0;
-
-        $data = [
-            'header'      => $this->request->getPost('header'),
-            'body'        => $this->request->getPost('body'),
-            'status'      => $this->request->getPost('status'),
-            'is_featured' => $isFeatured,
-            'updated_at'  => date('Y-m-d H:i:s'),
-        ];
-
-        // Optional file upload
-        $file = $this->request->getFile('picture');
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $newName = $file->getRandomName();
-            $file->move(FCPATH . 'uploads', $newName); // public/uploads
-            $data['picture'] = $newName;
-        }
-
-        // Remove nulls so we only update provided fields
-        $data = array_filter($data, fn($v) => $v !== null);
-
-        if (empty($data)) {
-            return $this->response->setJSON(["error" => "No data provided to update"]);
-        }
-
-        // If marking this post as featured, clear previous featured post(s)
-        if (array_key_exists('is_featured', $data) && (int)$data['is_featured'] === 1) {
-            $postModel->where('is_featured', 1)
-                    ->where('postId !=', $id)
-                    ->set('is_featured', 0)
-                    ->update();
-        }
-
-        $postModel->update($id, $data);
-
-        return $this->response->setJSON([
-            "message" => "Post updated successfully",
-            "id"      => $id,
-            "changed" => $data,
-        ]);
+    // app/Controllers/PostsController.php
+public function update($id = null)
+{
+    if ($id === null) {
+        return redirect()->back()->with('error', 'No Post ID provided.');
     }
+
+    $postModel = new \App\Models\PostsModel();
+    $post = $postModel->find($id);
+    if (!$post) {
+        return redirect()->back()->with('error', 'Post not found.');
+    }
+
+    // optional: handle new picture upload
+    $filename = $post['picture'] ?? null;
+    $file = $this->request->getFile('picture');
+    if ($file && $file->isValid() && !$file->hasMoved()) {
+        $filename = $file->getRandomName();
+        $file->move(FCPATH . 'uploads', $filename);
+    }
+
+    $data = [
+        'header'     => $this->request->getPost('header'),
+        'body'       => $this->request->getPost('body'),
+        'status'     => $this->request->getPost('status'),
+        'is_featured'=> $this->request->getPost('featured') ? 1 : 0,
+        'picture'    => $filename,
+        'updated_at' => date('Y-m-d H:i:s'),
+    ];
+
+    // keep "one featured" rule
+    if (!empty($data['is_featured'])) {
+        $postModel->where('postId !=', $id)->set(['is_featured' => 0])->update();
+    }
+
+    $postModel->update($id, $data);
+
+    // Redirect back to the list
+    return redirect()
+        ->to(site_url('admin/posts'))
+        ->with('success', 'Post updated successfully');
+}
 
 
     /**

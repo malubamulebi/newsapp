@@ -11,16 +11,21 @@ $routes->post('login', 'AuthController::doLogin');
 $routes->get('logout', 'AuthController::logout');
 
 // Admin UI (form to create a post)
-$routes->get('new-post', 'AdminUiController::newPost');   // shows the form
-$routes->post('create_post', 'PostsController::create');  // handles submit
-$routes->get('admin', 'AdminDashboardController::index'); // dashboard
-$routes->get('admin/posts', 'AdminDashboardController::posts');  // table list with search/filter
+$routes->group('', ['filter' => 'auth'], function($routes) {
+    $routes->get('admin', 'AdminDashboardController::index');
+    $routes->get('admin/posts', 'AdminDashboardController::posts');
+    $routes->get('new-post', 'AdminUiController::newPost');
+    $routes->get('admin/edit-post/(:num)', 'AdminUiController::editPost/$1');
+    $routes->post('create_post', 'PostsController::create');
+    $routes->post('update_post/(:num)', 'PostsController::update/$1');
+    $routes->delete('delete_post/(:num)', 'PostsController::delete/$1');
+});
 
 // Posts
 $routes->get('posts', 'PostsController::index');
 $routes->get('posts/(:num)', 'PostsController::show/$1');
-$routes->post('update_post/(:num)', 'PostsController::update/$1');
-$routes->delete('delete_post/(:num)', 'PostsController::delete/$1');
+// $routes->post('update_post/(:num)', 'PostsController::update/$1');
+// $routes->delete('delete_post/(:num)', 'PostsController::delete/$1');
 
 // optional: implemented PostsController::view($id)
 $routes->get('posts/view/(:num)', 'PostsController::view/$1');

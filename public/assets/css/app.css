@@ -21,3 +21,11 @@ body.site-bg{ background:var(--bg); min-height:100vh; }
 /* Cards readable on mobile */
 .card-title{ font-weight:700; }
 .card img{ object-fit:cover; max-height:210px; }
+
+/* Remove unwanted input icons (like email/password icons) */
+input[type="email"],
+input[type="password"] {
+  background-image: none !important;
+  padding-left: .75rem; /* keep spacing consistent */
+}
+

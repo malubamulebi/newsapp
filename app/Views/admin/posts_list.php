@@ -31,47 +31,32 @@
   <div class="table-responsive">
     <table class="table align-middle">
       <thead>
-        <tr>
-          <th>Header</th>
-          <th>Status</th>
-          <th>Date Posted</th>
-          <th class="text-end">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php if (empty($posts)): ?>
-          <tr><td colspan="4" class="text-muted">No posts found.</td></tr>
-        <?php else: ?>
-          <?php foreach ($posts as $p): ?>
-            <?php $cid = 'c' . $p['postId']; ?>
-            <tr>
-              <td class="fw-semibold"><?= esc($p['header']) ?></td>
-              <td><span class="badge bg-secondary"><?= esc($p['status'] ?? 'active') ?></span></td>
-              <td><?= esc(date('M j, Y H:i', strtotime($p['created_at'] ?? date('Y-m-d H:i:s')))) ?></td>
-              <td class="text-end">
-                <a class="btn btn-sm btn-outline-primary" href="<?= site_url('posts/view/' . $p['postId']) ?>">Open</a>
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $cid ?>">See more</button>
-              </td>
-            </tr>
-            <tr class="collapse" id="<?= $cid ?>">
-              <td colspan="4">
-                <div class="card card-body">
-                  <?php if (!empty($p['picture'])): ?>
-                    <img src="<?= base_url('uploads/' . $p['picture']) ?>" class="img-fluid mb-3" alt="">
-                  <?php endif; ?>
-                  <div class="mb-2"><strong>Header: </strong><?= esc($p['header']) ?></div>
-                  <div class="mb-2"><strong>Body:</strong><br><?= nl2br(esc($p['body'])) ?></div>
-                  <div class="text-muted small">
-                    Created: <?= esc($p['created_at']) ?> |
-                    Updated: <?= esc($p['updated_at'] ?? '-') ?> |
-                    Featured: <?= !empty($p['is_featured']) ? 'Yes' : 'No' ?>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </tbody>
+  <tr>
+    <th>Header</th>
+    <th>Status</th>
+    <th>Date Posted</th>
+    <th>Last Modified</th>
+    <th class="text-end">Actions</th>
+  </tr>
+</thead>
+<tbody>
+  <?php foreach ($posts as $p): ?>
+    <?php $cid = 'c'.$p['postId']; ?>
+    <tr>
+      <td class="fw-semibold"><?= esc($p['header']) ?></td>
+      <td><span class="badge bg-secondary"><?= esc($p['status'] ?? 'active') ?></span></td>
+      <td><?= esc(date('M j, Y H:i', strtotime($p['created_at'] ?? date('Y-m-d H:i:s')))) ?></td>
+      <td><?= esc(!empty($p['updated_at']) ? date('M j, Y H:i', strtotime($p['updated_at'])) : '-') ?></td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-primary" href="<?= site_url('posts/view/'.$p['postId']) ?>">Open</a>
+        <a class="btn btn-sm btn-warning" href="<?= site_url('admin/edit-post/'.$p['postId']) ?>">Edit</a>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $cid ?>">See more</button>
+      </td>
+    </tr>
+    <!-- collapse row stays as you had it -->
+  <?php endforeach; ?>
+</tbody>
+
     </table>
   </div>
 
