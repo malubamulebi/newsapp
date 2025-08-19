@@ -12,11 +12,13 @@ $routes->get('logout', 'AuthController::logout');
 
 // Admin UI (form to create a post)
 $routes->get('new-post', 'AdminUiController::newPost');   // shows the form
+$routes->post('create_post', 'PostsController::create');  // handles submit
+$routes->get('admin', 'AdminDashboardController::index'); // dashboard
+$routes->get('admin/posts', 'AdminDashboardController::posts');  // table list with search/filter
 
 // Posts
 $routes->get('posts', 'PostsController::index');
 $routes->get('posts/(:num)', 'PostsController::show/$1');
-$routes->post('create_post', 'PostsController::create');  // handles submit
 $routes->post('update_post/(:num)', 'PostsController::update/$1');
 $routes->delete('delete_post/(:num)', 'PostsController::delete/$1');
 

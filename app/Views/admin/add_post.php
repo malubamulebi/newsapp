@@ -36,6 +36,14 @@
             <input type="file" name="picture" class="form-control">
           </div>
 
+          <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1">
+            <label class="form-check-label" for="is_featured">Make this the featured headline</label>
+          </div>
+          </div>
+
+
           <div class="d-flex gap-2">
             <button class="btn btn-brand btn-lg">Publish</button>
             <a href="<?= site_url('/') ?>" class="btn btn-outline-secondary btn-lg">Cancel</a>

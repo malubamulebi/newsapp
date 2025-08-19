@@ -9,54 +9,93 @@ class AdminDashboardController extends BaseController
 {
     public function index()
     {
-        // simple gate – later replace with real auth
-        if (!session('isLoggedIn')) {
-            return redirect()->to(site_url('login'));
-        }
+        $pm = new PostsModel();
 
-        $posts = new PostsModel();
-        $users = new UsersModel();
-        $admins = new AdminModel();
+        // Counts
+        $total      = $pm->withDeleted()->countAllResults(); // includes archived (soft-deleted)
+        $active     = (new PostsModel())->where('deleted_at', null)->where('status', 'active')->countAllResults();
+        $archived   = (new PostsModel())->onlyDeleted()->countAllResults();
+        $featured   = (new PostsModel())->where('deleted_at', null)->where('is_featured', 1)->countAllResults();
 
-        // stats
-        $stats = [
-            'totalPosts'     => $posts->where('deleted_at', null)->countAllResults(),
-            'archivedPosts'  => $posts->onlyDeleted()->countAllResults(),
-            'totalUsers'     => $users->countAllResults(),
-            'totalAdmins'    => $admins->countAllResults(),
+        // Posts by status (for Pie/Bar)
+        $byStatus = [
+            'active'   => $active,
+            'archived' => $archived,
+            'featured' => $featured,
         ];
 
-        // latest 10 active + archived
-        $activePosts   = (new PostsModel())->where('deleted_at', null)->orderBy('updated_at DESC, created_at DESC')->findAll(10);
-        $archivedPosts = (new PostsModel())->onlyDeleted()->orderBy('deleted_at DESC')->findAll(10);
+        // Posts per day (last 7 days) for Line chart
+        $db = db_connect();
+        $rows = $db->query("
+            SELECT DATE(created_at) d, COUNT(*) c
+            FROM posts
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+            GROUP BY DATE(created_at)
+            ORDER BY d
+        ")->getResultArray();
 
-        // latest 10 users (email, username, comment preview)
-        $latestUsers = (new UsersModel())->orderBy('userId DESC')->findAll(10);
+        // Fill missing days with 0
+        $labels = [];
+        $values = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $day = date('Y-m-d', strtotime("-$i day"));
+            $labels[] = date('M j', strtotime($day));
+            $found = array_values(array_filter($rows, fn($r) => $r['d'] === $day));
+            $values[] = $found ? (int)$found[0]['c'] : 0;
+        }
 
         return view('admin/dashboard', [
-            'title'        => 'Dashboard',
-            'bodyClass'    => 'site-bg',
-            'stats'        => $stats,
-            'activePosts'  => $activePosts,
-            'archivedPosts'=> $archivedPosts,
-            'latestUsers'  => $latestUsers,
+            'title'     => 'Admin Dashboard',
+            'bodyClass' => 'site-bg',
+
+            // widgets
+            'total'     => $total,
+            'active'    => $active,
+            'archived'  => $archived,
+            'featured'  => $featured,
+
+            // charts
+            'byStatus'  => $byStatus,
+            'labels'    => $labels,
+            'values'    => $values,
         ]);
     }
 
-    public function archivePost($id)
+
+    public function posts()
     {
-        if (!session('isLoggedIn')) return redirect()->to(site_url('login'));
-        $posts = new PostsModel();
-        $posts->delete($id); // soft-delete (archive)
-        return redirect()->to(site_url('admin'))->with('msg', 'Post archived.');
+        $q     = trim((string)$this->request->getGet('q'));
+        $from  = $this->request->getGet('from');  // YYYY-MM-DD
+        $to    = $this->request->getGet('to');    // YYYY-MM-DD
+
+        $model   = new \App\Models\PostsModel();
+        $builder = $model->where('deleted_at', null);
+
+        if ($q !== '') {
+            $builder->groupStart()
+                    ->like('header', $q)
+                    ->orLike('body', $q)
+                    ->groupEnd();
+        }
+        if (!empty($from)) {
+            $builder->where('DATE(created_at) >=', $from);
+        }
+        if (!empty($to)) {
+            $builder->where('DATE(created_at) <=', $to);
+        }
+
+        $posts = $builder->orderBy('created_at', 'DESC')->paginate(10);
+        $pager = $model->pager;
+
+        return view('admin/posts_list', [
+            'title'     => 'All Posts',
+            'bodyClass' => 'site-bg',
+            'posts'     => $posts,
+            'pager'     => $pager,
+            'q'         => $q,
+            'from'      => $from,
+            'to'        => $to,
+        ]);
     }
 
-    public function restorePost($id)
-    {
-        if (!session('isLoggedIn')) return redirect()->to(site_url('login'));
-        $posts = new PostsModel();
-        // restore by clearing deleted_at
-        $posts->update($id, ['deleted_at' => null]);
-        return redirect()->to(site_url('admin'))->with('msg', 'Post restored.');
-    }
 }

@@ -72,7 +72,16 @@ class PostsController extends BaseController
                 $filename = $file->getRandomName();
                 $file->move(FCPATH . 'uploads', $filename); // public/uploads
             }
+            
+            $isFeatured = $this->request->getPost('is_featured') ? 1 : 0;
 
+            // if this should be the only featured, unset existing one(s)
+            if ($isFeatured) {
+                (new PostsModel())
+                    ->where('is_featured', 1)
+                    ->set('is_featured', 0)
+                    ->update();
+            }
             $data = [
                 'header'   => $this->request->getPost('header'),
                 'body'     => $this->request->getPost('body'),
@@ -135,28 +144,53 @@ class PostsController extends BaseController
         }
 
         $postModel = new PostsModel();
-
-        if (!$postModel->find($id)) {
+        $existing  = $postModel->find($id);
+        if (!$existing) {
             return $this->response->setJSON(["error" => "Post not found"]);
         }
 
+        // Gather scalar fields
+        $isFeatured = $this->request->getPost('is_featured'); // checkbox "on"/"1" or null
+        $isFeatured = ($isFeatured === '1' || $isFeatured === 'on' || $isFeatured === 1) ? 1 : 0;
+
         $data = [
-            'header' => $this->request->getPost('header'),
-            'body'   => $this->request->getPost('body'),
-            'picture'=> $this->request->getPost('picture'),
-            'status' => $this->request->getPost('status'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'header'      => $this->request->getPost('header'),
+            'body'        => $this->request->getPost('body'),
+            'status'      => $this->request->getPost('status'),
+            'is_featured' => $isFeatured,
+            'updated_at'  => date('Y-m-d H:i:s'),
         ];
 
+        // Optional file upload
+        $file = $this->request->getFile('picture');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $newName = $file->getRandomName();
+            $file->move(FCPATH . 'uploads', $newName); // public/uploads
+            $data['picture'] = $newName;
+        }
+
+        // Remove nulls so we only update provided fields
         $data = array_filter($data, fn($v) => $v !== null);
 
         if (empty($data)) {
             return $this->response->setJSON(["error" => "No data provided to update"]);
         }
 
+        // If marking this post as featured, clear previous featured post(s)
+        if (array_key_exists('is_featured', $data) && (int)$data['is_featured'] === 1) {
+            $postModel->where('is_featured', 1)
+                    ->where('postId !=', $id)
+                    ->set('is_featured', 0)
+                    ->update();
+        }
+
         $postModel->update($id, $data);
 
-        return $this->response->setJSON(["message" => "Post updated successfully"]);
+        return $this->response->setJSON([
+            "message" => "Post updated successfully",
+            "id"      => $id,
+            "changed" => $data,
+        ]);
     }
 
 
