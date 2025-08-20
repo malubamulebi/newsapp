@@ -105,7 +105,7 @@
   const lineCounts = <?= json_encode($values) ?>;
 
   const ctx = document.getElementById('dashboardChart').getContext('2d');
-
+  const generatedBy = <?= json_encode($generatedBy ?? 'Admin') ?>;
   function currentColors() {
     const picks = [...document.querySelectorAll('.colorPick:checked')].map(i => i.value);
     return picks.length ? picks : ['#1976d2'];
@@ -145,18 +145,46 @@
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
   document.getElementById('btnExportPdf').addEventListener('click', async () => {
-    const area = document.getElementById('dashboardArea');
-    const canvas = await html2canvas(area, { scale:2, useCORS:true });
-    const img = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p','mm','a4');
-    const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(16); pdf.text('NewsApp Dashboard', 14, 14);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(10); pdf.text('Generated: '+ts(), 14, 22);
-    const m=10, top=28, maxW=W-m*2, maxH=H-top-m, r=canvas.height/canvas.width;
-    let w=maxW, h=maxW*r; if(h>maxH){ h=maxH; w=maxH/r; }
-    pdf.addImage(img, 'PNG', (W-w)/2, top, w, h);
-    pdf.save('NewsDashboard_'+ts().replace(/[: ]/g,'').replace(/-/g,'')+'.pdf');
+  const area = document.getElementById('dashboardArea');
+  const canvas = await html2canvas(area, { scale: 2, useCORS: true });
+  const img = canvas.toDataURL('image/png');
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(16);
+  pdf.text('NewsApp Dashboard', 14, 14);
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+
+  const metaLeft  = 'Generated: ' + ts();
+  const metaRight = 'By: ' + (typeof generatedBy !== 'undefined' ? generatedBy : 'Admin');
+
+  // left meta
+  pdf.text(metaLeft, 14, 22);
+
+  // right meta (right-aligned)
+  const rightWidth = pdf.getTextWidth(metaRight);
+  pdf.text(metaRight, pageW - 14 - rightWidth, 22);
+
+  const margin = 10, top = 28;
+  const maxW = pageW - margin * 2;
+  const maxH = pageH - top - margin;
+  const ratio = canvas.height / canvas.width;
+
+  let drawW = maxW;
+  let drawH = maxW * ratio;
+  if (drawH > maxH) { drawH = maxH; drawW = maxH / ratio; }
+
+  pdf.addImage(img, 'PNG', (pageW - drawW) / 2, top, drawW, drawH);
+
+  const stamp = ts().replace(/[: ]/g, '').replace(/-/g, '');
+  pdf.save(`NewsDashboard_${stamp}.pdf`);
   });
 </script>
 <?= $this->endSection() ?>

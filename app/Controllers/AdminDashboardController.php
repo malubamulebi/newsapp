@@ -7,59 +7,76 @@ use App\Models\AdminModel;
 
 class AdminDashboardController extends BaseController
 {
+
+    public function archivePost($id)
+    {
+        $pm = new \App\Models\PostsModel();
+        if (! $pm->find($id)) {
+            return redirect()->to(site_url('admin/posts'))->with('error', 'Post not found');
+        }
+        $pm->update($id, ['status' => 'archived', 'is_featured' => 0]);
+        return redirect()->to(site_url('admin/posts'))->with('success', 'Post archived');
+    }
+
+    public function restorePost($id)
+    {
+        $pm = new \App\Models\PostsModel();
+        if (! $pm->find($id)) {
+            return redirect()->to(site_url('admin/posts'))->with('error', 'Post not found');
+        }
+        $pm->update($id, ['status' => 'active']);
+        return redirect()->to(site_url('admin/posts'))->with('success', 'Post restored');
+    }
+
+
     public function index()
     {
-        $pm = new PostsModel();
+        $pm = new \App\Models\PostsModel();
 
-        // Counts
-        $total      = $pm->withDeleted()->countAllResults(); // includes archived (soft-deleted)
-        $active     = (new PostsModel())->where('deleted_at', null)->where('status', 'active')->countAllResults();
-        $archived   = (new PostsModel())->onlyDeleted()->countAllResults();
-        $featured   = (new PostsModel())->where('deleted_at', null)->where('is_featured', 1)->countAllResults();
+        $total    = $pm->where('deleted_at', null)->countAllResults(false);
 
-        // Posts by status (for Pie/Bar)
-        $byStatus = [
-            'active'   => $active,
-            'archived' => $archived,
-            'featured' => $featured,
-        ];
+        // group-by status
+        $rows = $pm->select('status, COUNT(*) as c')
+                ->where('deleted_at', null)
+                ->groupBy('status')
+                ->findAll();
 
-        // Posts per day (last 7 days) for Line chart
-        $db = db_connect();
-        $rows = $db->query("
-            SELECT DATE(created_at) d, COUNT(*) c
-            FROM posts
-            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-            GROUP BY DATE(created_at)
-            ORDER BY d
-        ")->getResultArray();
+        $byStatus = ['active' => 0, 'archived' => 0, 'featured' => 0];
+        foreach ($rows as $r) {
+            $key = strtolower(trim($r['status']));
+            if (isset($byStatus[$key])) {
+                $byStatus[$key] = (int)$r['c'];
+            }
+        }
 
-        // Fill missing days with 0
+        // featured count (independent of archived/active if you want; usually only active)
+        $featured = (int)$pm->where('deleted_at', null)->where('is_featured', 1)->countAllResults();
+
+        // last 7 days for line chart
         $labels = [];
         $values = [];
         for ($i = 6; $i >= 0; $i--) {
-            $day = date('Y-m-d', strtotime("-$i day"));
-            $labels[] = date('M j', strtotime($day));
-            $found = array_values(array_filter($rows, fn($r) => $r['d'] === $day));
-            $values[] = $found ? (int)$found[0]['c'] : 0;
+            $d = date('Y-m-d', strtotime("-$i days"));
+            $labels[] = date('M d', strtotime($d));
+            $values[] = (int)$pm->where('deleted_at', null)
+                                ->where("DATE(created_at)", $d)
+                                ->countAllResults();
         }
 
         return view('admin/dashboard', [
             'title'     => 'Admin Dashboard',
-            'bodyClass' => 'site-bg',
-
-            // widgets
-            'total'     => $total,
-            'active'    => $active,
-            'archived'  => $archived,
-            'featured'  => $featured,
-
-            // charts
+            'total'     => (int)$total,
+            'active'    => (int)$byStatus['active'],
+            'archived'  => (int)$byStatus['archived'],
+            'featured'  => (int)$featured,
             'byStatus'  => $byStatus,
             'labels'    => $labels,
             'values'    => $values,
+            'generatedBy' => session('user')['name'] ?? session('user')['email'] ?? 'Admin',
+            'bodyClass' => 'site-bg',
         ]);
     }
+
 
 
     public function posts()
@@ -97,5 +114,7 @@ class AdminDashboardController extends BaseController
             'to'        => $to,
         ]);
     }
+
+
 
 }
