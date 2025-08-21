@@ -145,4 +145,28 @@ class PostsController extends BaseController
         $m->delete($id); // SoftDeletes if enabled on the model
         return 'Post deleted successfully!';
     }
+
+    public function uploadImage()
+    {
+        $file = $this->request->getFile('file'); // TinyMCE posts as "file"
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['error' => 'No file or invalid upload'])->setStatusCode(400);
+        }
+
+        // (optional) basic mime/size checks
+        $allowed = ['image/jpeg','image/png','image/webp','image/gif'];
+        if (!in_array($file->getMimeType(), $allowed)) {
+            return $this->response->setJSON(['error' => 'Unsupported format'])->setStatusCode(415);
+        }
+
+        $name = $file->getRandomName();
+        $file->move(FCPATH.'uploads', $name);
+
+        // TinyMCE expects { location: "http://..." }
+        return $this->response->setJSON([
+            'location' => base_url('uploads/'.$name)
+        ]);
+    }
+
+
 }

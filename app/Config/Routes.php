@@ -24,11 +24,10 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
 // Posts
 $routes->get('posts', 'PostsController::index');
 $routes->get('posts/(:num)', 'PostsController::show/$1');
-// $routes->post('update_post/(:num)', 'PostsController::update/$1');
-// $routes->delete('delete_post/(:num)', 'PostsController::delete/$1');
-
-// optional: implemented PostsController::view($id)
 $routes->get('posts/view/(:num)', 'PostsController::view/$1');
+
+// app/Config/Routes.php
+$routes->post('upload_image', 'PostsController::uploadImage');
 
 // Users 
 // $routes->get('users', 'UsersController::index');

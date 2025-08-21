@@ -1,7 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 
 <?php
-  // create vs edit
   $isEdit = !empty($post) && !empty($post['postId']);
   $action = $isEdit ? site_url('update_post/'.$post['postId']) : site_url('create_post');
   $title  = $isEdit ? 'Edit Post' : 'Create a Post';
@@ -32,10 +31,8 @@
         <div class="row g-3">
           <div class="col-12 col-sm-6">
             <label class="form-label">Status</label>
+            <?php $curStatus = $isEdit ? ($post['status'] ?? 'active') : 'active'; ?>
             <select name="status" class="form-select">
-              <?php
-                $curStatus = $isEdit ? ($post['status'] ?? 'active') : 'active';
-              ?>
               <option value="active"   <?= $curStatus==='active'?'selected':''; ?>>Active</option>
               <option value="archived" <?= $curStatus==='archived'?'selected':''; ?>>Archived</option>
             </select>
@@ -57,14 +54,13 @@
 
           <div class="col-12">
             <label class="form-label">Body</label>
-            <textarea name="body" class="form-control" rows="8" placeholder="Write your story..." required><?= $isEdit ? esc($post['body']) : '' ?></textarea>
+            <textarea name="body" class="form-control" rows="10" placeholder="Write your story..." required><?= $isEdit ? esc($post['body']) : '' ?></textarea>
           </div>
 
           <div class="col-12">
             <label class="form-label">Picture</label>
             <input type="file" name="picture" class="form-control">
-            <div class="form-text">JPG, PNG, or WEBP. Optional. Uploading a new one replaces the old one.</div>
-
+            <div class="form-text">JPG, PNG, or WEBP. Optional.</div>
             <?php if ($isEdit && !empty($post['picture'])): ?>
               <div class="mt-2">
                 <img class="thumb" src="<?= base_url('uploads/'.$post['picture']) ?>" alt="current image">
@@ -81,4 +77,19 @@
     </div>
   </div>
 </div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script src="https://cdn.tiny.cloud/1/r0zzwkwhme2coed69hvswjnipsdiapw1t4j46iy13bpc77pf/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+tinymce.init({
+  selector: 'textarea[name="body"]',
+  height: 420,
+  menubar: false,
+  plugins: 'link lists image code paste autoresize',
+  toolbar: 'undo redo | bold italic underline | bullist numlist | link image | removeformat | code',
+  paste_data_images: true,
+  convert_urls: false
+});
+</script>
 <?= $this->endSection() ?>
